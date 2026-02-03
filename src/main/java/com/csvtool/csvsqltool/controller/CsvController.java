@@ -30,9 +30,31 @@ public class CsvController {
         try {
             InputStream is = file.getInputStream();
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
+
+            // Header
+            String headerLine = br.readLine();
+            String[] headers = headerLine.split(",");
+            System.out.println("HEADER:");
+            for (String h : headers) {
+                System.out.println(h);
+            }
+
+            // Rows
             String line;
             while ((line = br.readLine()) != null) {
-                System.out.println(line);
+                String[] row = line.split(",");
+                System.out.println("ROW:");
+                for (String cell : row) {
+                    if (cell.matches("\\d+")) {
+                        System.out.println(cell + "is INT");
+                    } else if (cell.matches("\\d+\\.\\d+")) {
+                        System.out.println(cell + "is DOUBLE");
+                    } else if (cell.equalsIgnoreCase("true") || cell.equalsIgnoreCase("false")) {
+                        System.out.println(cell + "is BOOLEAN");
+                    } else {
+                        System.out.println(cell + "is String");
+                    }
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
