@@ -99,44 +99,6 @@ public class CsvService {
     }
 
 
-
-
-//    private Map<String, Object> parseCsv(InputStream inputStream) throws IOException {
-//        BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
-//
-//        String headerLine = br.readLine();
-//        if (headerLine == null) {
-//            throw new IOException("CSV is empty");
-//        }
-//        String[] headers = headerLine.split(",");
-//
-//
-//        // Rows
-//        List<String[]> rows = new ArrayList<>();
-//        String line;
-//        while ((line = br.readLine()) != null) {
-//            rows.add(line.split(","));
-//        }
-//
-//        Map<String, String> columnTypes = new LinkedHashMap<>();
-//        for (int col = 0; col < headers.length; col++) {
-//            String type = detectColumnType(rows, col);
-//            columnTypes.put(headers[col].trim(), type);
-//        }
-//
-//        Map<String, Object> response = new LinkedHashMap<>();
-//        response.put("tableName", "temporary_table");
-//        response.put("headers", headers);
-//        response.put("columns", columnTypes);
-//        response.put("rowsCount", rows.size());
-//        response.put("rows", rows);
-//
-//        log.info("CSV parsed successfully: {} rows, {} columns", rows.size(), headers.length);
-//
-//        return response;
-//    }
-
-
     private void createTable(String tableName, Map<String, String> columns) {
         StringBuilder sql = new StringBuilder("CREATE TABLE " + tableName + " (");
 
@@ -190,6 +152,8 @@ public class CsvService {
         Map<String, String> columns =
                 (Map<String, String>) parsed.get("columns");
 
+        dropTableIfExists(tableName);
+
         createTable(tableName, columns);
         insertRows(tableName, headers, rows);
 
@@ -230,7 +194,6 @@ public class CsvService {
             throw new IllegalArgumentException("DELETE without WHERE is not allowed");
         }
     }
-
 
 
     public Map<String, Object> executeSql(String query) {
@@ -306,5 +269,11 @@ public class CsvService {
         return csvBuilder.toString().getBytes(StandardCharsets.UTF_8);
     }
 
+
+    private void dropTableIfExists(String tableName){
+        String sql = "DROP TABLE IF EXISTS " + tableName;
+        jdbcTemplate.execute(sql);
+        log.info("Dropped table '{}' if it existed", tableName);
+    }
 
 }
