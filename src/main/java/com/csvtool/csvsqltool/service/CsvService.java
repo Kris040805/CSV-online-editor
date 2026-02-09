@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Service
@@ -154,4 +155,78 @@ public class CsvService {
         return response;
     }
 
+    public Map<String, Object> executeSql(String query) {
+        String normalized = query.trim().toLowerCase();
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("query", query);
+
+        if (normalized.startsWith("select")) {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(query);
+
+            result.put("type", "SELECT");
+            result.put("rowsCount", rows.size());
+            result.put("rows", rows);
+
+            log.info("Executed SELECT, returned {} rows", rows.size());
+
+        } else if (normalized.startsWith("insert") ||
+                normalized.startsWith("update") ||
+                normalized.startsWith("delete")) {
+
+            int affected = jdbcTemplate.update(query);
+
+            if (normalized.startsWith("insert")) {
+                result.put("type", "INSERT");
+            } else if (normalized.startsWith("update")) {
+                result.put("type", "UPDATE");
+            } else {
+                result.put("type", "DELETE");
+            }
+
+            result.put("affectedRows", affected);
+
+            log.info("Executed DML query, affected {} rows", affected);
+        } else {
+            throw new IllegalArgumentException("Unsupported SQL query");
+        }
+
+        return result;
+    }
+
+
+
+
+
+
+    public byte[] exportCsv(String tableName) {
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList("SELECT * FROM " + tableName);
+
+        if (rows.isEmpty()) {
+            return new byte[0];
+        }
+
+        StringBuilder csvBuilder = new StringBuilder();
+
+        // Header
+        Set<String> headers = rows.get(0).keySet();
+        csvBuilder.append(String.join(",", headers)).append("\n");
+
+        // Data rows
+        for (Map<String, Object> row : rows) {
+            List<String> values = new ArrayList<>();
+
+            for (String col : headers) {
+                Object val = row.get(col);
+
+                String res = val == null ? "" : val.toString();
+
+                values.add(res);
+            }
+            csvBuilder.append(String.join(",", values)).append("\n");
+        }
+
+        log.info("Exported {} rows from table '{}'", rows.size(), tableName);
+        return csvBuilder.toString().getBytes(StandardCharsets.UTF_8);
+    }
 }
